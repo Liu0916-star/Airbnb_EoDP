@@ -1,0 +1,527 @@
+[
+	{
+		"Field": "id",
+		"Type": "integer",
+		"Calculated": "",
+		"Description": "Airbnb's unique identifier for the listing",
+		"Reference": ""
+	},
+	{
+		"Field": "listing_url",
+		"Type": "text",
+		"Calculated": "y",
+		"Description": "",
+		"Reference": ""
+	},
+	{
+		"Field": "scrape_id",
+		"Type": "bigint",
+		"Calculated": "y",
+		"Description": "Inside Airbnb \"Scrape\" this was part of",
+		"Reference": ""
+	},
+	{
+		"Field": "last_scraped",
+		"Type": "datetime",
+		"Calculated": "y",
+		"Description": "UTC. The date and time this listing was \"scraped\".",
+		"Reference": ""
+	},
+	{
+		"Field": "source",
+		"Type": "text",
+		"Calculated": "",
+		"Description": "One of \"neighbourhood search\" or \"previous scrape\". \"neighbourhood search\" means that the listing was found by searching the city, while \"previous scrape\" means that the listing was seen in another scrape performed in the last 65 days, and the listing was confirmed to be still available on the Airbnb site.",
+		"Reference": ""
+	},
+	{
+		"Field": "name",
+		"Type": "text",
+		"Calculated": "",
+		"Description": "Name of the listing",
+		"Reference": ""
+	},
+	{
+		"Field": "description",
+		"Type": "text",
+		"Calculated": "",
+		"Description": "Detailed description of the listing",
+		"Reference": ""
+	},
+	{
+		"Field": "neighborhood_overview",
+		"Type": "text",
+		"Calculated": "",
+		"Description": "Host's description of the neighbourhood",
+		"Reference": ""
+	},
+	{
+		"Field": "picture_url",
+		"Type": "text",
+		"Calculated": "",
+		"Description": "URL to the Airbnb hosted regular sized image for the listing",
+		"Reference": ""
+	},
+	{
+		"Field": "host_id",
+		"Type": "integer",
+		"Calculated": "",
+		"Description": "Airbnb's unique identifier for the host/user",
+		"Reference": ""
+	},
+	{
+		"Field": "host_url",
+		"Type": "text",
+		"Calculated": "y",
+		"Description": "The Airbnb page for the host",
+		"Reference": ""
+	},
+	{
+		"Field": "host_name",
+		"Type": "text",
+		"Calculated": "",
+		"Description": "Name of the host. Usually just the first name(s).",
+		"Reference": ""
+	},
+	{
+		"Field": "host_since",
+		"Type": "date",
+		"Calculated": "",
+		"Description": "The date the host/user was created. For hosts that are Airbnb guests this could be the date they registered as a guest.",
+		"Reference": ""
+	},
+	{
+		"Field": "host_location",
+		"Type": "text",
+		"Calculated": "",
+		"Description": "The host's self reported location",
+		"Reference": ""
+	},
+	{
+		"Field": "host_about",
+		"Type": "text",
+		"Calculated": "",
+		"Description": "Description about the host",
+		"Reference": ""
+	},
+	{
+		"Field": "host_response_time",
+		"Type": "",
+		"Calculated": "",
+		"Description": "",
+		"Reference": ""
+	},
+	{
+		"Field": "host_response_rate",
+		"Type": "",
+		"Calculated": "",
+		"Description": "",
+		"Reference": ""
+	},
+	{
+		"Field": "host_acceptance_rate",
+		"Type": "",
+		"Calculated": "",
+		"Description": "That rate at which a host accepts booking requests.",
+		"Reference": ""
+	},
+	{
+		"Field": "host_is_superhost",
+		"Type": "boolean [t=true; f=false]",
+		"Calculated": "",
+		"Description": "",
+		"Reference": ""
+	},
+	{
+		"Field": "host_thumbnail_url",
+		"Type": "text",
+		"Calculated": "",
+		"Description": "",
+		"Reference": ""
+	},
+	{
+		"Field": "host_picture_url",
+		"Type": "text",
+		"Calculated": "",
+		"Description": "",
+		"Reference": ""
+	},
+	{
+		"Field": "host_neighbourhood",
+		"Type": "text",
+		"Calculated": "",
+		"Description": "",
+		"Reference": ""
+	},
+	{
+		"Field": "host_listings_count",
+		"Type": "text",
+		"Calculated": "",
+		"Description": "The number of listings the host has (per Airbnb unknown calculations)",
+		"Reference": ""
+	},
+	{
+		"Field": "host_total_listings_count",
+		"Type": "text",
+		"Calculated": "",
+		"Description": "The number of listings the host has (per Airbnb unknown calculations)",
+		"Reference": ""
+	},
+	{
+		"Field": "host_verifications",
+		"Type": "",
+		"Calculated": "",
+		"Description": "",
+		"Reference": ""
+	},
+	{
+		"Field": "host_has_profile_pic",
+		"Type": "boolean [t=true; f=false]",
+		"Calculated": "",
+		"Description": "",
+		"Reference": ""
+	},
+	{
+		"Field": "host_identity_verified",
+		"Type": "boolean [t=true; f=false]",
+		"Calculated": "",
+		"Description": "",
+		"Reference": ""
+	},
+	{
+		"Field": "neighbourhood",
+		"Type": "text",
+		"Calculated": "",
+		"Description": "",
+		"Reference": ""
+	},
+	{
+		"Field": "neighbourhood_cleansed",
+		"Type": "text",
+		"Calculated": "y",
+		"Description": "The neighbourhood as geocoded using the latitude and longitude against neighborhoods as defined by open or public digital shapefiles.",
+		"Reference": ""
+	},
+	{
+		"Field": "neighbourhood_group_cleansed",
+		"Type": "text",
+		"Calculated": "y",
+		"Description": "The neighbourhood group as geocoded using the latitude and longitude against neighborhoods as defined by open or public digital shapefiles.",
+		"Reference": ""
+	},
+	{
+		"Field": "latitude",
+		"Type": "numeric",
+		"Calculated": "",
+		"Description": "Uses the World Geodetic System (WGS84) projection for latitude and longitude.",
+		"Reference": ""
+	},
+	{
+		"Field": "longitude",
+		"Type": "numeric",
+		"Calculated": "",
+		"Description": "Uses the World Geodetic System (WGS84) projection for latitude and longitude.",
+		"Reference": ""
+	},
+	{
+		"Field": "property_type",
+		"Type": "text",
+		"Calculated": "",
+		"Description": "Self selected property type. Hotels and Bed and Breakfasts are described as such by their hosts in this field",
+		"Reference": ""
+	},
+	{
+		"Field": "room_type",
+		"Type": "text",
+		"Calculated": "",
+		"Description": "[Entire home/apt|Private room|Shared room|Hotel]\nAll homes are grouped into the following three room types:\nEntire place\nPrivate room\nShared room\nEntire place\nEntire places are best if you're seeking a home away from home. With an entire place, you'll have the whole space to yourself. This usually includes a bedroom, a bathroom, a kitchen, and a separate, dedicated entrance. Hosts should note in the description if they'll be on the property or not (ex: \"\"Host occupies first floor of the home\"\"), and provide further details on the listing.\nPrivate rooms\nPrivate rooms are great for when you prefer a little privacy, and still value a local connection. When you book a private room, you'll have your own private room for sleeping and may share some spaces with others. You might need to walk through indoor spaces that another host or guest may occupy to get to your room.\nShared rooms\nShared rooms are for when you don't mind sharing a space with others. When you book a shared room, you'll be sleeping in a space that is shared with others and share the entire space with other people. Shared rooms are popular among flexible travelers looking for new friends and budget-friendly stays.",
+		"Reference": "https://www.airbnb.com/help/article/5/what-does-the-room-type-of-a-listing-mean"
+	},
+	{
+		"Field": "accommodates",
+		"Type": "integer",
+		"Calculated": "",
+		"Description": "The maximum capacity of the listing",
+		"Reference": ""
+	},
+	{
+		"Field": "bathrooms",
+		"Type": "numeric",
+		"Calculated": "",
+		"Description": "The number of bathrooms in the listing",
+		"Reference": ""
+	},
+	{
+		"Field": "bathrooms_text",
+		"Type": "string",
+		"Calculated": "",
+		"Description": "The number of bathrooms in the listing. \nOn the Airbnb web-site, the bathrooms field has evolved from a number to a textual description. For older scrapes, bathrooms is used.",
+		"Reference": ""
+	},
+	{
+		"Field": "bedrooms",
+		"Type": "integer",
+		"Calculated": "",
+		"Description": "The number of bedrooms",
+		"Reference": ""
+	},
+	{
+		"Field": "beds",
+		"Type": "integer",
+		"Calculated": "",
+		"Description": "The number of bed(s)",
+		"Reference": ""
+	},
+	{
+		"Field": "amenities",
+		"Type": "json",
+		"Calculated": "",
+		"Description": "",
+		"Reference": ""
+	},
+	{
+		"Field": "price",
+		"Type": "currency",
+		"Calculated": "",
+		"Description": "daily price in local currency.\nNOTE: the $ sign is a technical artifact of the export, please ignore it",
+		"Reference": ""
+	},
+	{
+		"Field": "minimum_nights",
+		"Type": "integer",
+		"Calculated": "",
+		"Description": "minimum number of night stay for the listing (calendar rules may be different)",
+		"Reference": ""
+	},
+	{
+		"Field": "maximum_nights",
+		"Type": "integer",
+		"Calculated": "",
+		"Description": "maximum number of night stay for the listing (calendar rules may be different)",
+		"Reference": ""
+	},
+	{
+		"Field": "minimum_minimum_nights",
+		"Type": "integer",
+		"Calculated": "y",
+		"Description": "the smallest minimum_night value from the calender (looking 365 nights in the future)",
+		"Reference": ""
+	},
+	{
+		"Field": "maximum_minimum_nights",
+		"Type": "integer",
+		"Calculated": "y",
+		"Description": "the largest minimum_night value from the calender (looking 365 nights in the future)",
+		"Reference": ""
+	},
+	{
+		"Field": "minimum_maximum_nights",
+		"Type": "integer",
+		"Calculated": "y",
+		"Description": "the smallest maximum_night value from the calender (looking 365 nights in the future)",
+		"Reference": ""
+	},
+	{
+		"Field": "maximum_maximum_nights",
+		"Type": "integer",
+		"Calculated": "y",
+		"Description": "the largest maximum_night value from the calender (looking 365 nights in the future)",
+		"Reference": ""
+	},
+	{
+		"Field": "minimum_nights_avg_ntm",
+		"Type": "numeric",
+		"Calculated": "y",
+		"Description": "the average minimum_night value from the calender (looking 365 nights in the future)",
+		"Reference": ""
+	},
+	{
+		"Field": "maximum_nights_avg_ntm",
+		"Type": "numeric",
+		"Calculated": "y",
+		"Description": "the average maximum_night value from the calender (looking 365 nights in the future)",
+		"Reference": ""
+	},
+	{
+		"Field": "calendar_updated",
+		"Type": "date",
+		"Calculated": "",
+		"Description": "",
+		"Reference": ""
+	},
+	{
+		"Field": "has_availability",
+		"Type": "boolean",
+		"Calculated": "",
+		"Description": "[t=true; f=false]",
+		"Reference": ""
+	},
+	{
+		"Field": "availability_30",
+		"Type": "integer",
+		"Calculated": "y",
+		"Description": "avaliability_x. The availability of the listing x days in the future as determined by the calendar. Note a listing may not be available because it has been booked by a guest or blocked by the host.",
+		"Reference": ""
+	},
+	{
+		"Field": "availability_60",
+		"Type": "integer",
+		"Calculated": "y",
+		"Description": "avaliability_x. The availability of the listing x days in the future as determined by the calendar. Note a listing may not be available because it has been booked by a guest or blocked by the host.",
+		"Reference": ""
+	},
+	{
+		"Field": "availability_90",
+		"Type": "integer",
+		"Calculated": "y",
+		"Description": "avaliability_x. The availability of the listing x days in the future as determined by the calendar. Note a listing may not be available because it has been booked by a guest or blocked by the host.",
+		"Reference": ""
+	},
+	{
+		"Field": "availability_365",
+		"Type": "integer",
+		"Calculated": "y",
+		"Description": "avaliability_x. The availability of the listing x days in the future as determined by the calendar. Note a listing may not be available because it has been booked by a guest or blocked by the host.",
+		"Reference": ""
+	},
+	{
+		"Field": "calendar_last_scraped",
+		"Type": "date",
+		"Calculated": "",
+		"Description": "",
+		"Reference": ""
+	},
+	{
+		"Field": "number_of_reviews",
+		"Type": "integer",
+		"Calculated": "",
+		"Description": "The number of reviews the listing has",
+		"Reference": ""
+	},
+	{
+		"Field": "number_of_reviews_ltm",
+		"Type": "integer",
+		"Calculated": "y",
+		"Description": "The number of reviews the listing has (in the last 12 months)",
+		"Reference": ""
+	},
+	{
+		"Field": "number_of_reviews_l30d",
+		"Type": "integer",
+		"Calculated": "y",
+		"Description": "The number of reviews the listing has (in the last 30 days)",
+		"Reference": ""
+	},
+	{
+		"Field": "first_review",
+		"Type": "date",
+		"Calculated": "y",
+		"Description": "The date of the first/oldest review",
+		"Reference": ""
+	},
+	{
+		"Field": "last_review",
+		"Type": "date",
+		"Calculated": "y",
+		"Description": "The date of the last/newest review",
+		"Reference": ""
+	},
+	{
+		"Field": "review_scores_rating",
+		"Type": "",
+		"Calculated": "",
+		"Description": "",
+		"Reference": ""
+	},
+	{
+		"Field": "review_scores_accuracy",
+		"Type": "",
+		"Calculated": "",
+		"Description": "",
+		"Reference": ""
+	},
+	{
+		"Field": "review_scores_cleanliness",
+		"Type": "",
+		"Calculated": "",
+		"Description": "",
+		"Reference": ""
+	},
+	{
+		"Field": "review_scores_checkin",
+		"Type": "",
+		"Calculated": "",
+		"Description": "",
+		"Reference": ""
+	},
+	{
+		"Field": "review_scores_communication",
+		"Type": "",
+		"Calculated": "",
+		"Description": "",
+		"Reference": ""
+	},
+	{
+		"Field": "review_scores_location",
+		"Type": "",
+		"Calculated": "",
+		"Description": "",
+		"Reference": ""
+	},
+	{
+		"Field": "review_scores_value",
+		"Type": "",
+		"Calculated": "",
+		"Description": "",
+		"Reference": ""
+	},
+	{
+		"Field": "license",
+		"Type": "text",
+		"Calculated": "",
+		"Description": "The licence/permit/registration number",
+		"Reference": ""
+	},
+	{
+		"Field": "instant_bookable",
+		"Type": "boolean",
+		"Calculated": "",
+		"Description": "[t=true; f=false]. Whether the guest can automatically book the listing without the host requiring to accept their booking request. An indicator of a commercial listing.",
+		"Reference": ""
+	},
+	{
+		"Field": "calculated_host_listings_count",
+		"Type": "integer",
+		"Calculated": "y",
+		"Description": "The number of listings the host has in the current scrape, in the city/region geography.",
+		"Reference": ""
+	},
+	{
+		"Field": "calculated_host_listings_count_entire_homes",
+		"Type": "integer",
+		"Calculated": "y",
+		"Description": "The number of Entire home/apt listings the host has in the current scrape, in the city/region geography",
+		"Reference": ""
+	},
+	{
+		"Field": "calculated_host_listings_count_private_rooms",
+		"Type": "integer",
+		"Calculated": "y",
+		"Description": "The number of Private room listings the host has in the current scrape, in the city/region geography",
+		"Reference": ""
+	},
+	{
+		"Field": "calculated_host_listings_count_shared_rooms",
+		"Type": "integer",
+		"Calculated": "y",
+		"Description": "The number of Shared room listings the host has in the current scrape, in the city/region geography",
+		"Reference": ""
+	},
+	{
+		"Field": "reviews_per_month",
+		"Type": "numeric",
+		"Calculated": "y",
+		"Description": "The average number of reviews per month the listing has over the lifetime of the listing.\nPsuedocoe/~SQL:\nIF scrape_date - first_review <= 30 THEN number_of_reviews\nELSE number_of_reviews / ((scrape_date - first_review + 1) / (365/12))\n",
+		"Reference": ""
+	}
+]
