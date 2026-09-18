@@ -1,4 +1,3 @@
 # Research Question
 
-Can Melbourne listings be grouped into price tiers, and what attributes 
-distinguish tiers — property attributes or how the host operates the listing?
+Can superhost status be inferred from listing attributes and host operating behaviour once Airbnb's own criteria are excluded, and is it more closely associated with listing fundamentals or operational strategy?
