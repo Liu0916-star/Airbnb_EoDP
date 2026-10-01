@@ -1,0 +1,294 @@
+"""
+COMP20008 A2 — 监督学习 + 特征选择（B 板块，先跑 preprocess.py）
+输入: data/clean.parquet（25,728 行，全部使用，不删零评论房源——零评论的信息由 has_review 列告诉模型）
+输出: outputs/evidence_model.json（报告 B 部分引用的所有数字）
+      outputs/cv_results.csv（调参表）、rq_experiments.csv（RQ 实验表）
+      outputs/feature_ranking.csv（特征重要性 + 排名）、fs_validation.csv（前 3 特征验证表）
+      outputs/fig_confusion.png（混淆矩阵）、fig_importance.png（置换重要性）
+运行: python3 model.py（从哪个目录运行都可以；KNN 较慢，全程约 3 分钟）；每个 "# %%" 对应最终 notebook 的一个 cell
+"""
+
+# %% Section 0. 数据准备：读 clean.parquet，房型合并为 3 类，把 11 个特征分成基本面（fundamentals）和运营策略（operationals）两组
+import json                                                                  # 保存 evidence_model.json
+import os                                                                    # 处理文件和文件夹的路径
+import matplotlib.pyplot as plt                                              # 画图
+import numpy as np                                                           # 数组、随机数、分位数
+import pandas as pd                                                          # 表格
+from matplotlib.patches import Patch                                         # 图例里的色块
+from sklearn.compose import ColumnTransformer                                # 分配器：不同的列走不同的预处理（数字列补空值/标准化，文字列独热编码）
+from sklearn.dummy import DummyClassifier                                    # 基线模型：永远猜人数最多的那一类，什么都不学
+from sklearn.feature_selection import mutual_info_classif                    # Filter 特征选择：每个特征单独和 y 算互信息
+from sklearn.impute import SimpleImputer                                     # 填空值
+from sklearn.inspection import permutation_importance                       # 置换重要性：打乱一列看分数掉多少
+from sklearn.metrics import ConfusionMatrixDisplay, classification_report, f1_score  # 混淆矩阵图、每类 Precision/Recall/F1、macro-F1
+from sklearn.model_selection import StratifiedGroupKFold, cross_val_score    # 分层 + 按房东分组的切分器、交叉验证打分
+from sklearn.neighbors import KNeighborsClassifier                           # KNN：找最近的 k 个邻居投票
+from sklearn.pipeline import Pipeline                                        # 流水线：把预处理和模型串成一个整体（fit 时自动只用训练数据算中位数/均值）
+from sklearn.preprocessing import OneHotEncoder, StandardScaler              # 独热编码（文字 → 多列 0/1）、标准化（减均值除标准差）
+from sklearn.tree import DecisionTreeClassifier                              # 决策树：一层层问"大于还是小于"
+
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))   # 项目根目录（本文件在"新代码"里，往上一层），在任何系统、从任何目录运行都不会出错
+OUTPUT_DIR = os.path.join(PROJECT_ROOT, "outputs")                           # 输出文件夹
+os.makedirs(OUTPUT_DIR, exist_ok=True)                                       # 没有就建（os.mkdir 只能建一层，os.makedirs 能连同上级目录一起建；exist_ok=True 已存在也不报错）
+round_value = lambda value, digits=4: round(float(value), digits)            # 小工具：转成普通小数并保留 digits 位，才能存进 json
+evidence = {}                                                                # 记账本：报告要引用的数字都存这里，最后存成 evidence_model.json
+
+listings = pd.read_parquet(os.path.join(PROJECT_ROOT, "data", "clean.parquet"))  # 读预处理结果（25,728 行 × 98 列）
+listings["room_type_3"] = listings["room_type"].replace({"Shared room": "Other", "Hotel room": "Other"})  # 合租和酒店合计仅 283 行（1.1%），不合并的话独热编码会生成两列几乎全是 0 的列，交叉验证每折只分到几十行，学不出规律还带来噪声 → 并成 Other，变成三类
+fundamentals = ["room_type_3", "dist_cbd", "accommodates"]                   # 房源基本面：房型、离市中心多远、能住几个人——房东基本改不了
+operationals = ["availability_365", "amenity_count", "days_since_last_review", "has_review",
+                "price_num", "price_missing", "minimum_nights", "host_listings_count"]  # 运营策略：开放多少天、配多少设施、最近有没有在接客、怎么定价、最少住几晚、手上有几套房——房东能控制
+ALL_FEATURES = fundamentals + operationals                                   # 全部 11 个特征。白名单写法：只写要用的列，官方评选标准（review_scores_*、number_of_reviews 等）没写进来就自然进不来，不会漏删
+X, y, host_ids = listings[ALL_FEATURES], listings["y"], listings["host_id"]  # X = 特征（题目）/ y = 答案（是不是超级房东）/ host_ids = 房东编号（只用来切分，不进模型，否则模型会去记"哪个号码是超级房东"）
+# 价格用 price_num（带空值），不用 price_filled：后者是用全部 25,728 行的中位数补的，含测试集信息（特征泄漏）；这里改在 Pipeline 里只用训练集的中位数补
+
+# %% Section 1. 按房东分组切分：StratifiedGroupKFold 切出 80% 训练集、20% 测试集，同一房东不会同时出现在两边
+group_kfold_splitter = StratifiedGroupKFold(n_splits=5, shuffle=True, random_state=42)  # 分 5 份 → 1 份 = 20%；Stratified = 分层（两边正类率尽量接近）；Group = 分组（同一房东整体移动）；shuffle 先打乱；42 固定随机种子保证可复现
+train_row_positions, test_row_positions = next(group_kfold_splitter.split(X, y, groups=host_ids))  # .split 是一个生成器，每次给出一种切法；next 只取第一种：1 份测试、4 份训练。返回的是行号（第几行），不是表格。传 y → 分层，传 groups → 分组，少传哪个就少哪个功能且不报错
+X_train, X_test = X.iloc[train_row_positions], X.iloc[test_row_positions]    # 按行号取特征（.iloc 按位置取；取出来的表保留原来在 listings 里的行标签，第 8 段要靠它查回房源 ID）
+y_train, y_test = y.iloc[train_row_positions], y.iloc[test_row_positions]    # 按行号取答案
+host_ids_train, host_ids_test = host_ids.iloc[train_row_positions], host_ids.iloc[test_row_positions]  # 按行号取房东：训练集的给交叉验证用（再按房东分组），测试集的给 bootstrap 用（按房东抽样）
+
+# ---- 1.1 记账 + 检查（Methodology 要写） ----
+evidence["split"] = {"train_rows": len(X_train), "test_rows": len(X_test),   # 20,783 / 4,945 行
+                     "test_share": round_value(len(X_test) / len(X)),        # 0.1922：房东是整体移动的，大房东落在哪边比例就偏一点，不会刚好 0.20
+                     "train_hosts": int(host_ids_train.nunique()), "test_hosts": int(host_ids_test.nunique()),  # 11,293 / 2,820 个房东
+                     "train_pos_rate": round_value(y_train.mean()), "test_pos_rate": round_value(y_test.mean()),  # 正类率 0.3119 / 0.2835：大房东大多不是超级房东，落进测试集就拉低测试集正类率（不换种子挑数据，如实报告）
+                     "host_overlap": len(set(host_ids_train) & set(host_ids_test))}  # 两边房东的交集个数，必须是 0（set 去重，& 求交集）
+assert evidence["split"]["host_overlap"] == 0                                # 分组切分生效，否则直接停
+print("split:", evidence["split"])
+
+# %% Section 2. 预处理流水线 + 三个小工具：造预处理器、造完整模型、交叉验证打分
+def build_preprocessor(feature_list, scale=False):
+    """给定特征名单，造一个预处理器：数字列补中位数（scale=True 时再标准化），房型独热编码。只造不 fit。"""
+    numeric_features = [column for column in feature_list if column != "room_type_3"]  # 数字列 = 名单里除房型以外的全部
+    numeric_steps = [("impute", SimpleImputer(strategy="median"))]           # 数字路第 1 步：补中位数（用中位数不用平均数：价格有极端值）；fit 时只用训练数据算，测试集只拿来用
+    if scale:                                                                # 只有 KNN 要标准化
+        numeric_steps.append(("scale", StandardScaler()))                    # 数字路第 2 步：减均值、除标准差，让每列都落在 0 附近；否则 KNN 算距离时 dsl（最大 4,594）会压倒 has_review（只有 0/1）
+    transformer_branches = [("num", Pipeline(numeric_steps), numeric_features)] if numeric_features else []  # 分配器第一条路：数字列走"补空值(+标准化)"；名字 "num" 会成为输出列名的前缀 num__
+    if "room_type_3" in feature_list:                                        # 名单里有房型才加文字路（只用运营特征时没有房型）
+        transformer_branches.append(("cat", OneHotEncoder(handle_unknown="ignore", sparse_output=False), ["room_type_3"]))  # 文字路：一列拆成 3 列 0/1（不用 0/1/2 编码，因为房型之间没有大小）；handle_unknown="ignore" 遇到没见过的类别不报错；sparse_output=False 输出普通数组
+    return ColumnTransformer(transformer_branches)                           # 默认丢掉没被分配的列，所以两条路加起来必须覆盖全部特征
+
+def build_model(model_name, feature_list, hyperparameter):
+    """造一个完整模型 = 预处理器 + 分类器。KNN 的 hyperparameter 是邻居数 k，DT 的是最大深度。"""
+    if model_name == "KNN":
+        return Pipeline([("prep", build_preprocessor(feature_list, scale=True)),          # KNN 靠距离判断"像不像"，必须标准化
+                         ("model", KNeighborsClassifier(n_neighbors=hyperparameter))])
+    return Pipeline([("prep", build_preprocessor(feature_list, scale=False)),             # 决策树只问"大于还是小于某个切点"，数字整体缩放答案不变，不用标准化；不标准化切点还保留真实单位（天、澳元），好解释
+                     ("model", DecisionTreeClassifier(max_depth=hyperparameter, random_state=42))])  # random_state：几个切法一样好时树会随机挑一个，固定下来才能复现
+
+def cross_validate_macro_f1(model, feature_list):
+    """在训练集上做 5 折交叉验证（每折同样按房东分组），返回 5 个 macro-F1 分数。"""
+    return cross_val_score(model, X_train[feature_list], y_train,            # 只取这组特征的列
+                           groups=host_ids_train,                            # 千万别漏：漏了不报错，但 5 折就不按房东切了，老熟人问题又回来
+                           cv=group_kfold_splitter,                          # 复用同一个切分器 → 所有候选值面对完全相同的 5 份数据，比较才公平
+                           scoring="f1_macro",                               # 主指标 macro-F1：0 类和 1 类的 F1 各占一半权重
+                           n_jobs=-1)                                        # 用电脑全部 CPU 核心并行，KNN 快很多
+
+# %% Section 3. 基线 + 交叉验证调参：KNN 调邻居数 k，决策树调深度，选出各自最佳值和更好的模型
+# ---- 3.1 基线 ----
+tuning_rows = []                                                             # 调参表：每个候选值一行
+fold_scores = cross_validate_macro_f1(DummyClassifier(strategy="most_frequent"), ALL_FEATURES)  # 基线：全猜 0。准确率能有约 69%，看起来"挺准"；但 macro-F1 把 0 类和 1 类各算 50%，它对 1 类的 F1 是 0，平均下来只有约 0.41，原形毕露
+tuning_rows.append({"model": "Baseline", "param": "-", "cv_mean": fold_scores.mean(), "cv_std": fold_scores.std()})  # 记录 5 折平均分和标准差（标准差小 = 换一批数据成绩也稳定）
+
+# ---- 3.2 两个模型的候选值逐个试 ----
+HYPERPARAMETER_GRID = {"KNN": [1, 5, 11, 21, 51, 101, 151, 201, 301],        # 邻居数：太小（看 1 个邻居）容易被特例带偏 = 过拟合；太大太笼统 = 欠拟合；用奇数避免投票打平；上限要大到确认分数已经开始下降
+                       "DT": [2, 3, 4, 5, 6, 8, 10, 15, None]}               # 最大深度：太浅规则太粗；None = 不限层数，问到每个房源都有专属规则，等于背答案
+for model_name, candidate_values in HYPERPARAMETER_GRID.items():
+    for hyperparameter in candidate_values:
+        fold_scores = cross_validate_macro_f1(build_model(model_name, ALL_FEATURES, hyperparameter), ALL_FEATURES)  # 这个候选值的 5 折成绩（里面藏着 5 次 .fit：每次 4 份训练、1 份打分，打完就扔）
+        tuning_rows.append({"model": model_name, "param": hyperparameter, "cv_mean": fold_scores.mean(), "cv_std": fold_scores.std()})
+tuning_table = pd.DataFrame(tuning_rows)                                     # 19 行调参表（报告要列出每个候选值的 CV 成绩）
+
+# ---- 3.3 选最佳 ----
+best_hyperparameters = {model_name: max((row for row in tuning_rows if row["model"] == model_name), key=lambda row: row["cv_mean"])["param"]
+                        for model_name in HYPERPARAMETER_GRID}               # 每个模型 CV 平均分最高的那个值（直接从列表取，不从 DataFrame 取：pandas 会把混着 None 的整数列变成小数，n_neighbors=101.0 会报错）
+BEST_MODEL_NAME = max(HYPERPARAMETER_GRID, key=lambda model_name: tuning_table.loc[tuning_table["model"] == model_name, "cv_mean"].max())  # 两个模型里 CV 最好的（只看 CV 不看测试集，避免偷看）；第 5、8 段用它
+evidence["best_param"], evidence["best_model"] = best_hyperparameters, BEST_MODEL_NAME
+print(tuning_table.round(4).to_string(index=False), "\nbest:", best_hyperparameters, "→", BEST_MODEL_NAME)
+
+# %% Section 4. 测试集最终评估：训练正式模型、只考一次、画混淆矩阵、按房东做配对 bootstrap 置信区间
+# ---- 4.1 训练三个正式模型并在测试集上打分 ----
+final_models = {"Baseline": DummyClassifier(strategy="most_frequent"),      # 三个正式模型：用最佳超参数，在整个训练集（全部 80%）上重新训练
+                "KNN": build_model("KNN", ALL_FEATURES, best_hyperparameters["KNN"]),
+                "DT": build_model("DT", ALL_FEATURES, best_hyperparameters["DT"])}
+test_predictions, evidence["test"] = {}, {}                                  # 每个模型的测试集预测（4,945 个 0/1）、成绩
+for model_name, model in final_models.items():
+    test_predictions[model_name] = model.fit(X_train, y_train).predict(X_test)  # .fit = 机器学习（这里才是真正训练出留下来用的模型，第 3 段只是选拔超参数）；.predict = 考试
+    report = classification_report(y_test, test_predictions[model_name], digits=3, zero_division=0, output_dict=True)  # 每类的 Precision/Recall/F1（字典形式方便存）；zero_division=0 给基线用：它从不猜 1，1 类的 precision 是 0/0
+    evidence["test"][model_name] = {"macro_f1": round_value(report["macro avg"]["f1-score"]),  # 主指标 macro-F1
+                                    "accuracy": round_value(report["accuracy"]),             # 准确率仅作参考（基线也有 0.716）
+                                    **{f"class{label}": {metric: round_value(report[label][metric]) for metric in ("precision", "recall", "f1-score")}
+                                       for label in ("0", "1")}}             # 0 类、1 类各自的 P/R/F1（** 把这个小字典展开合并进去）
+    print(f"\n==== {model_name} ====\n" + classification_report(y_test, test_predictions[model_name], digits=3, zero_division=0))  # 打印文字版表格
+
+# ---- 4.2 混淆矩阵图 ----
+figure, axes = plt.subplots(1, 2, figsize=(10, 4))                           # 一行两个子图：只画 KNN 和 DT（基线的矩阵一整列都是 0，没什么好看）
+for axis, model_name in zip(axes, ["KNN", "DT"]):
+    ConfusionMatrixDisplay.from_predictions(y_test, test_predictions[model_name], ax=axis, colorbar=False,
+                                            display_labels=["Non-superhost", "Superhost"])  # 行 = 真实，列 = 预测；左下角 = 漏掉的超级房东（FN），右上角 = 误报（FP）
+    axis.set_title(f"{model_name} (test macro-F1 = {evidence['test'][model_name]['macro_f1']:.3f})")
+plt.tight_layout()
+plt.savefig(os.path.join(OUTPUT_DIR, "fig_confusion.png"), dpi=150)
+plt.close(figure)
+
+# ---- 4.3 配对 bootstrap：按房东有放回抽样，算置信区间 ----
+y_test_array = y_test.to_numpy()                                             # 转成 numpy 数组才能用位置编号直接取
+test_rows_by_host = list(host_ids_test.reset_index(drop=True)                # reset_index 让行号从 0 开始，和数组位置对上
+                         .groupby(host_ids_test.to_numpy()).indices.values())  # .indices = {房东ID: 他在测试集里的行号数组}；只要行号，共 2,820 组
+random_generator = np.random.default_rng(42)                                 # 固定种子，可复现
+
+def bootstrap_compare(predictions_a, predictions_b, n_resamples=1000):
+    """按房东有放回抽样 n_resamples 次，返回模型 a、b 的 macro-F1 95% 区间，以及 b − a 的区间（配对：每次同一份样本同时给两边打分）。"""
+    scores_a, scores_b = [], []
+    for _ in range(n_resamples):
+        sampled_hosts = random_generator.integers(len(test_rows_by_host), size=len(test_rows_by_host))  # 有放回抽 2,820 个房东（有的抽到两次，有的一次没抽到）；按房东抽是因为同一房东的房源高度相似，要当一个整体
+        sampled_rows = np.concatenate([test_rows_by_host[host] for host in sampled_hosts])  # 拼出这些房东的全部房源行号（抽到两次的房东，房源也出现两次）
+        scores_a.append(f1_score(y_test_array[sampled_rows], predictions_a[sampled_rows], average="macro"))  # 同一份样本上给 a 打分
+        scores_b.append(f1_score(y_test_array[sampled_rows], predictions_b[sampled_rows], average="macro"))  # 同一份样本上给 b 打分
+    confidence_interval = lambda scores: [round_value(bound) for bound in np.percentile(scores, [2.5, 97.5])]  # 去掉最低和最高各 2.5% → 中间 95% 的范围
+    return {"a": confidence_interval(scores_a), "b": confidence_interval(scores_b),
+            "b_minus_a": confidence_interval(np.array(scores_b) - np.array(scores_a))}  # 差值区间完全在 0 的一边（如 [0.0125, 0.0412]）→ 怎么重抽 b 都稳赢 a，差距是真的；跨过 0 → 可能只是运气
+
+evidence["boot_KNN_vs_DT"] = bootstrap_compare(test_predictions["KNN"], test_predictions["DT"])  # a = KNN，b = DT
+print("\nbootstrap KNN vs DT:", evidence["boot_KNN_vs_DT"])
+
+# %% Section 5. RQ 实验：只给模型看一部分特征（基本面 vs 运营，以及去掉评论 / 可订天数的稳健性检查）
+REVIEW_FEATURES = ["days_since_last_review", "has_review"]                   # 评论新近度那一对（一起去掉：has_review 就是在说明 dsl 是不是填出来的，只去一个没有意义）
+FEATURE_SETS = {"A_fundamentals": fundamentals,                              # 3 个：只看基本面
+                "B_operational": operationals,                               # 8 个：只看运营
+                "C_all": ALL_FEATURES,                                       # 11 个：对照组（= 第 4 段的正式模型）
+                "D_all_no_review": [column for column in ALL_FEATURES if column not in REVIEW_FEATURES],         # 9 个：结果是不是全靠评论新近度撑着？（dsl 与近 12 月评论数相关 −0.8155）
+                "E_all_no_avail": [column for column in ALL_FEATURES if column != "availability_365"],           # 10 个：availability_365 到底有多重要（填报告的 [TO BE CONFIRMED]）
+                "F_operational_no_review": [column for column in operationals if column not in REVIEW_FEATURES]}  # 6 个：最关键的稳健性检查——去掉评论相关特征后，运营还比基本面强吗？
+
+def run_feature_sets(feature_sets):
+    """每组特征 × 两个模型：CV 成绩（主要依据，只用训练集）+ 测试成绩（确认）。超参数沿用第 3 段选好的，不重新调。"""
+    result_rows, predictions = [], {}
+    for experiment_name, feature_list in feature_sets.items():
+        for model_name in ("KNN", "DT"):
+            model = build_model(model_name, feature_list, best_hyperparameters[model_name])  # 只用这组特征的模型
+            fold_scores = cross_validate_macro_f1(model, feature_list)       # 训练集上 5 折
+            predictions[experiment_name, model_name] = model.fit(X_train[feature_list], y_train).predict(X_test[feature_list])  # 只取这组列训练、预测（键是 (实验名, 模型名) 这样的二元组）
+            result_rows.append({"experiment": experiment_name, "model": model_name, "n_features": len(feature_list),
+                                "cv_mean": fold_scores.mean(), "cv_std": fold_scores.std(),
+                                "test_macro_f1": f1_score(y_test, predictions[experiment_name, model_name], average="macro")})
+    return pd.DataFrame(result_rows), predictions
+
+rq_experiment_table, rq_test_predictions = run_feature_sets(FEATURE_SETS)    # rq_experiment_table：12 行（6 组 × 2 个模型），含特征数、CV 均值、CV 标准差、测试 macro-F1；rq_test_predictions：每个组合在测试集上的 0/1 预测，下面做 bootstrap 用
+assert all((rq_test_predictions["C_all", model_name] == test_predictions[model_name]).all() for model_name in ("KNN", "DT"))  # 自检：C 组必须和第 4 段的正式模型完全一样
+evidence["rq"] = rq_experiment_table.round(4).to_dict("records")
+evidence["boot_A_vs_B"] = bootstrap_compare(rq_test_predictions["A_fundamentals", BEST_MODEL_NAME], rq_test_predictions["B_operational", BEST_MODEL_NAME])  # RQ 关键：b − a = 运营 − 基本面
+evidence["boot_A_vs_F"] = bootstrap_compare(rq_test_predictions["A_fundamentals", BEST_MODEL_NAME], rq_test_predictions["F_operational_no_review", BEST_MODEL_NAME])  # 稳健性：去掉评论后的运营 − 基本面
+print("\n", rq_experiment_table.pivot(index="experiment", columns="model", values="cv_mean").round(4))  # 宽表：行 = 实验，列 = 模型
+print("bootstrap A vs B:", evidence["boot_A_vs_B"], "\nbootstrap A vs F:", evidence["boot_A_vs_F"])
+
+# %% Section 6. 特征影响力：决策树自带重要性 + 两个模型的置换重要性
+# ---- 6.1 直接调用决策树模型自带的属性 feature_importances_ ----
+final_tree_pipeline = final_models["DT"]                                     # 第 4 段训练好的正式决策树（整条流水线）
+transformed_feature_names = final_tree_pipeline.named_steps["prep"].get_feature_names_out()  # named_steps 用步骤名取出某一步；预处理后的 13 个列名：num__dist_cbd …、cat__room_type_3_Entire home/apt …
+tree_builtin_importance = pd.Series(final_tree_pipeline.named_steps["model"].feature_importances_,  # 13 个重要性：每个特征在所有切分里贡献的纯度提升之和，归一化到总和 1（在训练集上算，偏爱可切位置多的连续特征）
+                                    index=["room_type_3" if name.startswith("cat__") else name[5:] for name in transformed_feature_names]  # 改名：3 个 cat__ 开头的都叫 room_type_3；num__ 开头的去掉前 5 个字符
+                                    ).groupby(level=0).sum()                 # 同名的行相加 → 3 个房型列合成 1 个，得到 11 个，总和仍是 1
+
+# ---- 6.2 DT 和 KNN 的置换重要性（同一把尺子） ----
+permutation_importance_by_model = {
+    model_name: pd.Series(permutation_importance(final_models[model_name], X_test, y_test,  # 传整条流水线 → 打乱的是原始 11 列（房型整列一起打乱），不用再合并
+                                                 scoring="f1_macro", n_repeats=10,        # 每列打乱 10 次取平均，减少运气成分
+                                                 random_state=42, n_jobs=-1).importances_mean,  # importances_mean：每列 macro-F1 平均掉了多少
+                          index=ALL_FEATURES)                                 # 顺序和 X_test 的列一致
+    for model_name in ("KNN", "DT")}                                         # 在测试集上算：衡量对预测真正有多少帮助；缺点：相关特征会互相掩护（打乱 dsl 时 has_review 还在）
+
+# ---- 6.3 合成一张表 ----
+feature_ranking_table = pd.DataFrame({"group": ["fundamental" if column in fundamentals else "operational" for column in ALL_FEATURES],  # 属于哪一组
+                                      "DT_builtin": tree_builtin_importance,          # 决策树自带重要性
+                                      "DT_perm": permutation_importance_by_model["DT"],   # 决策树置换重要性
+                                      "KNN_perm": permutation_importance_by_model["KNN"]},  # KNN 置换重要性
+                                     index=ALL_FEATURES)                     # 三个 Series 按特征名自动对齐
+
+# ---- 6.4 画横向条形图 ----
+GROUP_COLORS = {"fundamental": "#4C72B0", "operational": "#DD8452"}          # 两组两种颜色，一眼看出排在前面的是哪组
+figure, axes = plt.subplots(1, 2, figsize=(12, 5))
+for axis, column in zip(axes, ["KNN_perm", "DT_perm"]):
+    sorted_table = feature_ranking_table.sort_values(column)                 # 升序 → barh 从下往上画，最重要的在最上面
+    axis.barh(sorted_table.index, sorted_table[column], color=sorted_table["group"].map(GROUP_COLORS))  # 横向条形图，特征名放 y 轴，名字长也看得清
+    axis.axvline(0, color="grey", linewidth=0.8)                             # 0 线：很小的负数 = 打乱后分数碰巧略高，其实就是"没用"
+    axis.set(title=f"{column[:-5]} permutation importance (test set)", xlabel="Mean drop in macro-F1")  # column[:-5] 去掉 "_perm"
+axes[1].legend(handles=[Patch(color=color, label=group) for group, color in GROUP_COLORS.items()], loc="lower right")  # 图例
+plt.tight_layout()
+plt.savefig(os.path.join(OUTPUT_DIR, "fig_importance.png"), dpi=150)
+plt.close(figure)
+
+# %% Section 7. 特征选择：Filter（互信息 MI）vs Embedded（决策树重要性），各选前 3，再验证只用 3 个特征能考多少分
+# ---- 7.1 Filter：每个特征单独和 y 算互信息（只用训练集，选特征也是建模决定，不能偷看测试集） ----
+X_train_for_mutual_info = X_train.copy()                                     # 副本，不改动原来的 X_train
+X_train_for_mutual_info["room_type_3"] = X_train_for_mutual_info["room_type_3"].astype("category").cat.codes  # 房型 → 0/1/2（MI 只看是不是同一类，不在乎数字大小，所以这里可以这样编码）
+X_train_for_mutual_info = X_train_for_mutual_info.fillna(X_train_for_mutual_info.median())  # MI 不接受空值：用训练集自己的中位数补
+feature_ranking_table["filter_MI"] = mutual_info_classif(                    # 和 correlation.py 的分箱 MI 不同：这里直接估计连续值，数字不能互相比较
+    X_train_for_mutual_info, y_train, random_state=42,                       # 估计连续特征的 MI 时内部有随机成分，固定种子
+    discrete_features=[column in ("room_type_3", "has_review", "price_missing") for column in ALL_FEATURES])  # 告诉它哪几列是离散的（True/False 列表，顺序和列一致）
+
+# ---- 7.2 两种方法排名 ----
+feature_ranking_table["filter_rank"] = feature_ranking_table["filter_MI"].rank(ascending=False, method="min").astype(int)      # Filter 排名（分数最高 = 第 1；并列取最小名次）
+feature_ranking_table["embedded_rank"] = feature_ranking_table["DT_builtin"].rank(ascending=False, method="min").astype(int)   # Embedded 排名（直接用第 6 段的决策树自带重要性，它也是只在训练集上得到的）
+top3_features = {"filter_top3": feature_ranking_table["filter_MI"].nlargest(3).index.tolist(),      # Filter 前 3：单独看每个特征，信息重复的特征会一起入选
+                 "embedded_top3": feature_ranking_table["DT_builtin"].nlargest(3).index.tolist()}   # Embedded 前 3：看特征在树里的额外贡献，重复的会被压低（树用了 dsl 后，availability / has_review 就没新信息了）
+
+# ---- 7.3 验证：只用前 3 个特征重新训练打分 ----
+feature_selection_validation_table, _ = run_feature_sets(top3_features)      # 复用第 5 段的函数（预测结果用不到，用 _ 接住）
+feature_selection_validation_table = pd.concat([feature_selection_validation_table,
+                                                rq_experiment_table[rq_experiment_table["experiment"] == "C_all"]], ignore_index=True)  # 附上全部 11 个特征的成绩作对照（不重复计算）
+evidence["top3"] = top3_features
+evidence["top3_common"] = sorted(set(top3_features["filter_top3"]) & set(top3_features["embedded_top3"]))  # 两种方法都选中的特征
+evidence["feature_ranking"] = feature_ranking_table.round(4).to_dict("index")
+evidence["fs_validation"] = feature_selection_validation_table.round(4).to_dict("records")
+print("\n", feature_ranking_table.sort_values("filter_rank").round(4).to_string(), "\n", top3_features,
+      "\n", feature_selection_validation_table.round(4).to_string(index=False))
+
+# %% Section 8. 难例分析：模型最有把握判错的超级房东（False Negative）
+# ---- 8.1 测试集明细表，筛出所有漏掉的超级房东 ----
+test_detail_table = X_test.assign(
+    y_true=y_test,                                                           # 真实答案
+    y_pred=test_predictions[BEST_MODEL_NAME],                                # 最佳模型的预测
+    proba=final_models[BEST_MODEL_NAME].predict_proba(X_test)[:, 1],         # 模型认为"是超级房东"的概率（第 2 列）；决策树 = 落进的那片叶子里训练时超级房东的比例
+    id=listings.loc[X_test.index, "id"],                                     # 房源 ID：X_test 保留了原 listings 的行标签，用 .loc 能对回去
+    host_id=host_ids_test)                                                   # 房东 ID
+false_negatives = test_detail_table[(test_detail_table["y_true"] == 1) & (test_detail_table["y_pred"] == 0)].sort_values("proba", kind="stable")  # 真实是 1、预测是 0 的全部房源，按概率从小到大排（stable：并列时保持原顺序，结果可复现）
+hard_case = false_negatives.iloc[0]                                          # 第一行 = 模型最有把握判错的那一个
+
+# ---- 8.2 和两类房源的中位数对比 ----
+median_comparison_table = X_train.groupby(y_train).median(numeric_only=True).T  # 训练集里非超级房东 / 超级房东各自的中位数（numeric_only 跳过房型文字列）；.T 转置成"一行一个特征"
+median_comparison_table.columns = ["non_superhost_median", "superhost_median"]
+median_comparison_table["this_listing"] = hard_case[median_comparison_table.index].astype(float)  # 这个房源的实际数值，放在一起看更像哪一边
+
+# ---- 8.3 查背景（被排除的列只用来解释，不当特征） ----
+hard_case_host_listings = listings[listings["host_id"] == hard_case["host_id"]]  # 这个房东在数据集里的全部房源
+evidence["hard_case"] = {"listing_id": int(hard_case["id"]), "host_id": int(hard_case["host_id"]), "model": BEST_MODEL_NAME,
+                         "proba_superhost": round_value(hard_case["proba"]), "room_type": hard_case["room_type_3"],
+                         "fn_total": len(false_negatives),                   # FN 总数，应等于混淆矩阵左下角
+                         "listing_number_of_reviews": int(listings.loc[hard_case.name, "number_of_reviews"]),  # hard_case.name = 这一行在 listings 里的行标签
+                         "host_n_listings": len(hard_case_host_listings),
+                         "host_listings_with_reviews": int(hard_case_host_listings["has_review"].sum()),
+                         "comparison": median_comparison_table.round(2).to_dict("index")}
+print("\n", {key: value for key, value in evidence["hard_case"].items() if key != "comparison"}, "\n", median_comparison_table.round(2))
+
+# ---- 8.4 难例是不是个例：看全部漏掉的超级房东里，有多少和它一样超过一年没有评论 ----
+true_positives = test_detail_table[(test_detail_table["y_true"] == 1) & (test_detail_table["y_pred"] == 1)]  # 被正确认出的超级房东
+inactive_over_year = test_detail_table["days_since_last_review"] > 365       # 筛选条件：超过一年没有评论（零评论房源填的是 4,594，也算在内）
+evidence["false_negative_context"] = {
+    "test_superhosts_inactive_over_year": int((inactive_over_year & (test_detail_table["y_true"] == 1)).sum()),  # 测试集里超过一年没评论的超级房东一共几个（89）
+    "false_negatives_inactive_over_year": int(inactive_over_year[false_negatives.index].sum()),                 # 其中被漏掉的有几个（89 → 一个都没认出来）
+    "false_negatives_no_review": int((false_negatives["has_review"] == 0).sum()),                               # 漏掉的里面零评论房源有几个（38）
+    "false_negative_median_dsl": round_value(false_negatives["days_since_last_review"].median(), 1),            # 漏掉的中位天数 106
+    "true_positive_median_dsl": round_value(true_positives["days_since_last_review"].median(), 1)}              # 认出的中位天数 27.5 → 模型几乎只认"最近活跃"的超级房东
+print("false negative context:", evidence["false_negative_context"])
+
+# %% Section 9. 保存
+tuning_table.round(4).to_csv(os.path.join(OUTPUT_DIR, "cv_results.csv"), index=False)                       # 调参表 19 行
+rq_experiment_table.round(4).to_csv(os.path.join(OUTPUT_DIR, "rq_experiments.csv"), index=False)            # RQ 实验表 12 行
+feature_ranking_table.round(4).to_csv(os.path.join(OUTPUT_DIR, "feature_ranking.csv"))                      # 特征表 11 行（index = 特征名，要保留）
+feature_selection_validation_table.round(4).to_csv(os.path.join(OUTPUT_DIR, "fs_validation.csv"), index=False)  # 前 3 验证表 6 行
+with open(os.path.join(OUTPUT_DIR, "evidence_model.json"), "w") as evidence_file:
+    json.dump(evidence, evidence_file, indent=2, ensure_ascii=False, default=str)  # default=str 兜底：漏转的 numpy 类型变成文字，不报错
+print("\n→ saved: evidence_model.json, 4 csv, fig_confusion.png, fig_importance.png")
