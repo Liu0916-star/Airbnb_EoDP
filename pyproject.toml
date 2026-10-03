@@ -23,10 +23,11 @@ dev = [
 # with a full-width trailing comment aligned in a column. Two consequences:
 #  - line-length is raised, so import sorting does not re-wrap statements that are
 #    only long because of their trailing comment;
-#  - formatting is opted out of entirely, because ruff's formatter collapses the
-#    comment padding to two spaces and re-splits multi-line statements.
+#  - notebooks are excluded from formatting entirely, because ruff's formatter
+#    collapses the comment padding to two spaces and re-splits multi-line
+#    statements. The pattern must be a glob -- a bare directory name does not match.
 # Delete the exclude below only if the whole codebase is being restyled.
 line-length = 200
 
 [tool.ruff.format]
-exclude = ["new_resource_code"]
+exclude = ["*.ipynb"]
