@@ -7,12 +7,13 @@ COMP20008 A2 — 预处理（A 板块第 1 个文件，必须最先运行）
 """
 
 # %% Section 0. 准备：导入工具库、找到项目根目录、读原始数据、建记账本
-import json                                                                  # 两个用途：① 解析 amenities 那串文字 ② 把记账本存成 evidence.json
-import os                                                                    # 拼接文件路径（Windows / Mac 的路径写法不同，用它就不用管）
-import numpy as np                                                           # 数学工具：三角函数（算距离）、随机抽样（验证中位数稳定性）
-import pandas as pd                                                          # 表格工具：读 csv、筛选、分组统计、存 parquet
+import json  # 两个用途：① 解析 amenities 那串文字 ② 把记账本存成 evidence.json
+import os  # 拼接文件路径（Windows / Mac 的路径写法不同，用它就不用管）
 
-PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))   # 项目根目录：本文件在"新代码"文件夹里，往上走一层就是根目录；这样从哪里运行都能找到 data/ 和 outputs/
+import numpy as np  # 数学工具：三角函数（算距离）、随机抽样（验证中位数稳定性）
+import pandas as pd  # 表格工具：读 csv、筛选、分组统计、存 parquet
+
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) if "__file__" in globals() else os.getcwd()   # 项目根目录：本文件在脚本文件夹里，往上走一层就是根目录；转成 notebook 后没有 __file__，退回当前工作目录（notebook 放在根目录，getcwd 就是根目录）
 round_value = lambda value, digits=4: round(float(value), digits)            # 小工具：把 numpy 数字转成 Python 普通小数并保留 digits 位小数（numpy 类型直接存 json 会报错）
 
 listings = pd.read_csv(os.path.join(PROJECT_ROOT, "data", "listings.csv"), low_memory=False)  # 读原始数据：一行 = 一个房源；low_memory=False 让 pandas 一次读完整列再判断类型，避免混合类型警告

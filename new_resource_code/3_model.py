@@ -9,25 +9,26 @@ COMP20008 A2 — 监督学习 + 特征选择（B 板块，先跑 preprocess.py�
 """
 
 # %% Section 0. 数据准备：读 clean.parquet，房型合并为 3 类，把 11 个特征分成基本面（fundamentals）和运营策略（operationals）两组
-import json                                                                  # 保存 evidence_model.json
-import os                                                                    # 处理文件和文件夹的路径
-import matplotlib.pyplot as plt                                              # 画图
-import numpy as np                                                           # 数组、随机数、分位数
-import pandas as pd                                                          # 表格
-from matplotlib.patches import Patch                                         # 图例里的色块
-from sklearn.compose import ColumnTransformer                                # 分配器：不同的列走不同的预处理（数字列补空值/标准化，文字列独热编码）
-from sklearn.dummy import DummyClassifier                                    # 基线模型：永远猜人数最多的那一类，什么都不学
-from sklearn.feature_selection import mutual_info_classif                    # Filter 特征选择：每个特征单独和 y 算互信息
-from sklearn.impute import SimpleImputer                                     # 填空值
-from sklearn.inspection import permutation_importance                       # 置换重要性：打乱一列看分数掉多少
-from sklearn.metrics import ConfusionMatrixDisplay, classification_report, f1_score  # 混淆矩阵图、每类 Precision/Recall/F1、macro-F1
-from sklearn.model_selection import StratifiedGroupKFold, cross_val_score    # 分层 + 按房东分组的切分器、交叉验证打分
-from sklearn.neighbors import KNeighborsClassifier                           # KNN：找最近的 k 个邻居投票
-from sklearn.pipeline import Pipeline                                        # 流水线：把预处理和模型串成一个整体（fit 时自动只用训练数据算中位数/均值）
-from sklearn.preprocessing import OneHotEncoder, StandardScaler              # 独热编码（文字 → 多列 0/1）、标准化（减均值除标准差）
-from sklearn.tree import DecisionTreeClassifier                              # 决策树：一层层问"大于还是小于"
+import json  # 保存 evidence_model.json
+import os  # 处理文件和文件夹的路径
 
-PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))   # 项目根目录（本文件在"新代码"里，往上一层），在任何系统、从任何目录运行都不会出错
+import matplotlib.pyplot as plt  # 画图
+import numpy as np  # 数组、随机数、分位数
+import pandas as pd  # 表格
+from matplotlib.patches import Patch  # 图例里的色块
+from sklearn.compose import ColumnTransformer  # 分配器：不同的列走不同的预处理（数字列补空值/标准化，文字列独热编码）
+from sklearn.dummy import DummyClassifier  # 基线模型：永远猜人数最多的那一类，什么都不学
+from sklearn.feature_selection import mutual_info_classif  # Filter 特征选择：每个特征单独和 y 算互信息
+from sklearn.impute import SimpleImputer  # 填空值
+from sklearn.inspection import permutation_importance  # 置换重要性：打乱一列看分数掉多少
+from sklearn.metrics import ConfusionMatrixDisplay, classification_report, f1_score  # 混淆矩阵图、每类 Precision/Recall/F1、macro-F1
+from sklearn.model_selection import StratifiedGroupKFold, cross_val_score  # 分层 + 按房东分组的切分器、交叉验证打分
+from sklearn.neighbors import KNeighborsClassifier  # KNN：找最近的 k 个邻居投票
+from sklearn.pipeline import Pipeline  # 流水线：把预处理和模型串成一个整体（fit 时自动只用训练数据算中位数/均值）
+from sklearn.preprocessing import OneHotEncoder, StandardScaler  # 独热编码（文字 → 多列 0/1）、标准化（减均值除标准差）
+from sklearn.tree import DecisionTreeClassifier  # 决策树：一层层问"大于还是小于"
+
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) if "__file__" in globals() else os.getcwd()   # 项目根目录（本文件在脚本文件夹里，往上一层）；转成 notebook 后没有 __file__，退回当前工作目录
 OUTPUT_DIR = os.path.join(PROJECT_ROOT, "outputs")                           # 输出文件夹
 os.makedirs(OUTPUT_DIR, exist_ok=True)                                       # 没有就建（os.mkdir 只能建一层，os.makedirs 能连同上级目录一起建；exist_ok=True 已存在也不报错）
 round_value = lambda value, digits=4: round(float(value), digits)            # 小工具：转成普通小数并保留 digits 位，才能存进 json

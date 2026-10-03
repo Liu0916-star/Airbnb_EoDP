@@ -12,3 +12,21 @@ dependencies = [
     "pyarrow>=25.0.1",
     "scikit-learn>=1.9.1",
 ]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.16.10",
+]
+
+[tool.ruff]
+# This codebase is written in an "annotated" style: one short statement per line
+# with a full-width trailing comment aligned in a column. Two consequences:
+#  - line-length is raised, so import sorting does not re-wrap statements that are
+#    only long because of their trailing comment;
+#  - formatting is opted out of entirely, because ruff's formatter collapses the
+#    comment padding to two spaces and re-splits multi-line statements.
+# Delete the exclude below only if the whole codebase is being restyled.
+line-length = 200
+
+[tool.ruff.format]
+exclude = ["new_resource_code"]

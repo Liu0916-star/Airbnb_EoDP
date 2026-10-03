@@ -8,14 +8,15 @@ COMP20008 A2 — 相关性分析（A 板块第 2 个文件，先跑 preprocess.p
 """
 
 # %% Section 0. 准备：导入工具库、读数据、筛出有评论的房源、定义 5 个变量和分箱工具
-import json                                                                  # 保存 evidence_correlation.json
-import os                                                                    # 拼接文件路径
-from itertools import combinations                                           # 生成两两组合：5 个变量 → 10 对
-import matplotlib.pyplot as plt                                              # 画图
-import pandas as pd                                                          # 表格；Pearson / Spearman 也直接用它的 .corr() 算
+import json  # 保存 evidence_correlation.json
+import os  # 拼接文件路径
+from itertools import combinations  # 生成两两组合：5 个变量 → 10 对
+
+import matplotlib.pyplot as plt  # 画图
+import pandas as pd  # 表格；Pearson / Spearman 也直接用它的 .corr() 算
 from sklearn.metrics import mutual_info_score, normalized_mutual_info_score  # 互信息 MI（任意依赖，没有上限）、归一化互信息 NMI（缩放到 0~1，可跨变量对比较）
 
-PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))   # 项目根目录（本文件在"新代码"里，往上一层）
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) if "__file__" in globals() else os.getcwd()   # 项目根目录（本文件在脚本文件夹里，往上一层）；转成 notebook 后没有 __file__，退回当前工作目录
 OUTPUT_DIR = os.path.join(PROJECT_ROOT, "outputs")                           # 输出文件夹
 os.makedirs(OUTPUT_DIR, exist_ok=True)                                       # 没有就建，已有不报错
 round_value = lambda value, digits=4: round(float(value), digits)            # 小工具：转成普通小数并保留 digits 位，才能存进 json
