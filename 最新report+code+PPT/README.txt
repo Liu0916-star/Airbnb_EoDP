@@ -94,40 +94,42 @@ All files are written to outputs/. Every number quoted in the report is stored i
 one of the four evidence_*.json files, under the key named below.
 
 Report item                                  Output file (key)                        Notebook
-(table and figure numbers refer to the report draft of 7 Oct and must be re-checked
- after the report is revised)
+(section, table and figure numbers refer to the submitted report)
 -------------------------------------------  ---------------------------------------  --------
 2.1 / Table 1  Candidate preprocessing steps evidence_preprocess.json                 1.2-1.6
-3.1 / Table 3  Before/after of the 3 steps   evidence_preprocess.json                 1.2-1.4
 2.2  Binning choice, MI bin sensitivity      evidence_correlation.json                2.1
-3.2 / Table 4  Correlation table (40 values) correlation_matrix.csv (mi = nats,       2.2
-                                               mi_bits = bits)
-3.2 / Figure 2 Superhost rate by host size   fig_hlc_vs_y.png (hlc_band)              2.4
-4.2  dsl ~ dist_cbd sign flip                fig_dsl_vs_dist.png (dist_band_trend)    2.5
 2.3  Split sizes and class balance           evidence_model.json (split,              3.1-3.1b
                                                split_details)
-3.3 / Tables 5-6  CV score per hyperparameter cv_results.csv                          3.3
-3.3 / Table 7  Test precision/recall/F1      evidence_model.json (test, test_extra)   3.4-3.4b
-3.3 / Figure 3 Confusion matrices            fig_confusion.png                        3.4
-3.3 / Table 8  Bootstrap 95% intervals       evidence_model.json (boot_*)             3.4-3.5
-2.3 / 4.3  Feature-set experiments           rq_experiments.csv                       3.5
-3.1 / 4.1  Ablations G, H; price regrouping  rq_experiments_extra.csv                 3.5b
-3.4 / Table 9  Filter and embedded top 3     feature_ranking.csv, fs_validation.csv   3.6-3.7
-3.4 / Figure 4 Permutation importance        fig_importance.png                       3.6
-                                               (permutation_importance)
-3.4 / Table 10 Hard case 6812677             evidence_model.json (hard_case,          3.8-3.8b
-                                               false_negative_context)
-2.5 / Figure 1 Elbow curve (SSE), silhouette fig_elbow.png (kmeans_sweep)             4.5
-2.5  Candidate feature-set comparison        evidence_cluster.json                    4.5b
+2.5 / Table 2  Candidate clustering sets     evidence_cluster.json                    4.5b
                                                (candidate_set_comparison)
-3.5 / Table 11 PCA variance and loadings     pca_table.csv                            4.4
-4.5  Components vs superhost status          evidence_cluster.json (pc_vs_superhost)  4.4b
+2.5  k = 5: SSE drops and silhouette         evidence_cluster.json (kmeans_sweep)     4.5
 2.5  Why Ward linkage                        evidence_cluster.json                    4.6b
                                                (linkage_comparison_sizes)
-3.5  PCA scatter with K-Means centroids      fig_pca_clusters.png                     4.9
-3.5 / Tables 12-13 Cluster profiles          cluster_profiles.csv                     4.8
+3.1 / Table 3  Before/after of the 3 steps   evidence_preprocess.json                 1.2-1.4
+3.2 / Table 4  Correlation table (40 values) correlation_matrix.csv (mi = nats,       2.2
+                                               mi_bits = bits)
+3.2 / Figure 1 Superhost rate by host size   fig_hlc_vs_y.png (hlc_band)              2.4
+3.3 / Tables 5-6  CV score per hyperparameter cv_results.csv                          3.3
+3.3 / Table 7  Test precision/recall/F1      evidence_model.json (test, test_extra)   3.4-3.4b
+3.3 / Table 8  Bootstrap 95% intervals       evidence_model.json (boot_*)             3.4-3.5
+3.4 / Table 9  Feature ranking: MI,          feature_ranking.csv, evidence_model.json 3.6-3.7
+               impurity, permutation           (permutation_importance)
+3.4  Hard case 6812677                       evidence_model.json (hard_case,          3.8-3.8b
+                                               false_negative_context)
+3.5 / Table 10 PCA variance and loadings     pca_table.csv                            4.4
+3.5 / Figure 2 PCA scatter, K-Means centroids fig_pca_clusters.png                    4.9
+3.5 / Table 11 K-Means and Ward profiles     cluster_profiles.csv                     4.8
+4.1  Ablations G, H                          rq_experiments_extra.csv                 3.5b
+4.2  dsl ~ dist_cbd sign flip                fig_dsl_vs_dist.png (dist_band_trend)    2.5
+4.3  Feature-set experiments A-F, TP/FP      rq_experiments.csv, evidence_model.json  3.4, 3.5
+                                               (test_extra)
+4.5  Components vs superhost status          evidence_cluster.json (pc_vs_superhost)  4.4b
 4.5  K-Means vs Ward comparison              evidence_cluster.json (crosstab,          4.7
                                                kmeans_vs_hierarchical_ari)
-(not in report) Ward dendrogram, 2,000-row sample   fig_dendrogram.png               4.9
+
+Produced by the notebook but not shown in the report (kept as supporting evidence):
+fig_elbow.png (elbow curve), fig_confusion.png (confusion matrices),
+fig_importance.png (permutation importance chart), fs_validation.csv (top-3 retraining),
+fig_dendrogram.png (Ward dendrogram, 2,000-row sample).
 
 Note: cluster labels are 0-based in the notebook; the report numbers them 1-5.
