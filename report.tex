@@ -115,7 +115,7 @@ The five variables selected are host\_listings\_count, days\_since\_last\_review
 
 \textit{Rationale behind variable set}: On the listing fundamentals side, dist\_cbd measures the distance from Melbourne CBD (Flinders Street Station) and is appropriate as a fixed physical attribute that no host can change.
 
-Price is excluded because 25.47\% of prices are missing and 93.35\% of those missing rows are unavailable listings, so keeping only priced rows would give a non-random sample. On the fundamentals side, accommodates has the lowest mutual information among the 11 features (0.0065), so dist\_cbd is used as the single fundamentals representative.
+Price is excluded because 25.47\% of prices are missing and 93.35\% of those missing rows are unavailable listings, so keeping only priced rows would give a non-random sample. On the fundamentals side, accommodates has the lowest mutual information among the 11 features (0.0093), so dist\_cbd is used as the single fundamentals representative.
 
 On the operational strategy side, the three variables selected characterise hosts based on three dimensions. host\_listings\_count captures scale (median 2, maximum 667 platform-wide; the largest host in this dataset has 319 listings), availability\_365 reflects calendar positioning (21.8\% of listings at 0 days, 1.56\% at 365) and days\_since\_last\_review measures recent activity (median 84 days, maximum 4,593). The variables are tilted 3:1 towards operational features: only dist\_cbd represents fundamentals, so the fair comparison between the two families relies on the feature-subset (A/B) experiments rather than this variable set.
 
@@ -213,7 +213,7 @@ Pearson and Spearman disagree on host\_listings\_count with the target, at −0.
 
 \begin{figure}[!htbp]
 \centering
-\includegraphics[width=0.46\textwidth]{figures/figure1.png}
+\includegraphics[width=0.46\textwidth]{outputs/fig_hlc_vs_y.png}
 \caption{Superhost rate by host\_listings\_count band (n = 21,251 reviewed listings). The red line marks the overall superhost rate of 35.7\%.}
 \end{figure}
 
@@ -301,19 +301,19 @@ F (operational, no review pair) & [0.4923, 0.6313] & 0.5662 \\
 \footnotesize
 \begin{tabularx}{\textwidth}{L>{\raggedleft\arraybackslash}p{1.3cm}>{\raggedleft\arraybackslash}p{1.0cm}>{\raggedleft\arraybackslash}p{1.5cm}>{\raggedleft\arraybackslash}p{1.4cm}>{\raggedleft\arraybackslash}p{2.2cm}>{\raggedleft\arraybackslash}p{2.2cm}}
 \toprule
-\textbf{Feature} & \textbf{MI} & \thead{MI\\ rank} & \textbf{Impurity} & \thead{Impurity\\ rank} & \thead{DT\\ permutation} & \thead{k-NN\\ permutation} \\
+\textbf{Feature} & \thead{MI\\(bits)} & \thead{MI\\ rank} & \textbf{Impurity} & \thead{Impurity\\ rank} & \thead{DT\\ permutation} & \thead{k-NN\\ permutation} \\
 \midrule
-days\_since\_last\_review & 0.1273 & 1 & 0.5005 & 1 & 0.2269 & 0.0747 \\
-\rowcolor{band}host\_listings\_count & 0.1087 & 2 & 0.2698 & 2 & 0.0195 & 0.0037 \\
-availability\_365 & 0.0759 & 3 & 0.0356 & 4 & 0.0131 & 0.0169 \\
-\rowcolor{band}amenity\_count & 0.0749 & 4 & 0.1023 & 3 & 0.0810 & 0.1433 \\
-price\_num & 0.0657 & 5 & 0.0277 & 6 & 0.0109 & 0.0039 \\
-\rowcolor{band}price\_missing & 0.0451 & 6 & 0.0024 & 9 & 0.0219 & 0.0621 \\
-has\_review & 0.0344 & 7 & 0.0000 & 11 & 0.0000 & 0.0073 \\
-\rowcolor{band}dist\_cbd & 0.0340 & 8 & 0.0278 & 5 & 0.0054 & 0.0324 \\
-minimum\_nights & 0.0097 & 9 & 0.0157 & 8 & 0.0014 & 0.0006 \\
-\rowcolor{band}room\_type\_3 & 0.0089 & 10 & 0.0001 & 10 & 0.0000 & 0.0168 \\
-accommodates & 0.0065 & 11 & 0.0181 & 7 & 0.0062 & -0.0064 \\
+days\_since\_last\_review & 0.1837 & 1 & 0.5005 & 1 & 0.2269 & 0.0747 \\
+\rowcolor{band}host\_listings\_count & 0.1569 & 2 & 0.2698 & 2 & 0.0195 & 0.0037 \\
+availability\_365 & 0.1095 & 3 & 0.0356 & 4 & 0.0131 & 0.0169 \\
+\rowcolor{band}amenity\_count & 0.1080 & 4 & 0.1023 & 3 & 0.0810 & 0.1433 \\
+price\_num & 0.0948 & 5 & 0.0277 & 6 & 0.0109 & 0.0039 \\
+\rowcolor{band}price\_missing & 0.0651 & 6 & 0.0024 & 9 & 0.0219 & 0.0621 \\
+has\_review & 0.0496 & 7 & 0.0000 & 11 & 0.0000 & 0.0073 \\
+\rowcolor{band}dist\_cbd & 0.0490 & 8 & 0.0278 & 5 & 0.0054 & 0.0324 \\
+minimum\_nights & 0.0140 & 9 & 0.0157 & 8 & 0.0014 & 0.0006 \\
+\rowcolor{band}room\_type\_3 & 0.0128 & 10 & 0.0001 & 10 & 0.0000 & 0.0168 \\
+accommodates & 0.0093 & 11 & 0.0181 & 7 & 0.0062 & -0.0064 \\
 \bottomrule
 \end{tabularx}
 \end{table}
@@ -339,7 +339,7 @@ PC3 & 0.1681 & 0.6936 & accommodates +0.671 & availability\_365 −0.591 & ameni
 
 \begin{figure}[!htbp]
 \centering
-\includegraphics[width=0.47\textwidth]{figures/figure2.png}
+\includegraphics[width=0.47\textwidth]{outputs/fig_pca_clusters.png}
 \caption{PCA scatter of the 21,251 reviewed listings on the first two components, coloured by superhost status, with K-Means centroids (k=5) marked. A random sample of 5,000 listings is shown. Centroids numbered 1–5 correspond to clusters K1–K5 in Table 11.}
 \end{figure}
 
@@ -377,7 +377,7 @@ The three preprocessing steps have different effects on the downstream models, a
 
 The host\_listings\_count result can be explained from the ranks and the raw values. Spearman works with ranks: most listings fall in the 0–5 host-listings range (8,103, 2,560 and 2,832 listings across its three bands), where the superhost rate rises from 28.5\% to 46.1\%, so the rank correlation is positive at +0.070. Pearson uses the raw values: 1,259 listings belong to hosts with more than 100 listings (up to the platform-wide maximum of 667), and their superhost rate is only 16.9\%, which pulls the coefficient to −0.069. The two coefficients therefore describe the same non-monotonic relationship but weight different parts of it; MI and NMI do not assume monotonicity, yet NMI for this pair is only 0.0097.
 
-\textit{The second sign reversal.} Between days\_since\_last\_review and dist\_cbd the same pattern appears (Pearson −0.081, Spearman +0.061). When distance is split into twenty equal-frequency bands, the median days\_since\_last\_review is 41–60 days at 0.6–1.4 km, rises to 111 days at 1.7 km, peaks at 122 days near 5.0 km, and then falls to 69 days at 34.6 km and 47 days at 50.6 km. Most listings lie between the centre and the middle suburbs, where recency rises with distance, giving the positive Spearman value, while a small number of distant listings with low recency pull the raw-scale Pearson value negative.
+\textit{The second sign reversal.} Between days\_since\_last\_review and dist\_cbd the same pattern appears (Pearson −0.081, Spearman +0.061). When distance is split into twenty equal-frequency bands, the median days\_since\_last\_review is 41–60 days at 0.6–1.4 km, rises to 111 days at 1.7 km, peaks at 122 days near 5.0 km, and then falls to 69 days at 34.6 km and 47 days at 50.6 km. Across the inner and middle bands, days\_since\_last\_review rises with distance, which is what the positive Spearman value reflects. The distant bands run the other way: they are both far from the centre and recently reviewed, and that is what pulls the raw-scale Pearson value negative.
 
 \textit{Connection to the RQ.} Of the four pairs ranked by NMI, days\_since\_last\_review has the strongest association (NMI 0.0785), followed by availability\_365 (0.0324) and host\_listings\_count (0.0097). dist\_cbd comes last (0.0047), so the only listing fundamentals feature in the set has the weakest association with the target. It is important to note that these are associations only. Hosts with more than 100 listings may be running business or apartment models, so their low rate may reflect the business, rather than service quality. Not every guest also leaves a review, so days\_since\_last\_review may be inaccurate. A further confounder is that days\_since\_last\_review partly substitutes for an excluded criterion, since its Spearman correlation with number\_of\_reviews\_ltm is −0.8155. This motivates experiment F, which removes the review-related operational features; the test-set interval for F − A, [0.2819, 0.4536], remains clearly positive.
 
@@ -389,17 +389,17 @@ The host\_listings\_count result can be explained from the ranks and the raw val
 
 \textit{Feature influence.} The two models rely on different features. For the decision tree, permutation importance is highest for days\_since\_last\_review (0.2269), followed by amenity\_count (0.0810); for k-NN it is highest for amenity\_count (0.1433), followed by days\_since\_last\_review (0.0747) and price\_missing (0.0621). host\_listings\_count shows a striking contrast, with impurity importance of 0.2698 (second highest) but permutation importance of only 0.0195 for the tree and 0.0037 for k-NN, meaning the tree often splits on it during training although it adds little to test predictions. The features that both models depend on most are operational, which is consistent with the RQ.
 
-\textit{Model behaviour and limits.} Two further points qualify the results. First, depth 10 gives a CV F1 of 0.5745 ± 0.0130 and depth 4 gives 0.5712 ± 0.0177, a difference of only 0.0033 that is smaller than the standard deviation, so the two depths cannot be reliably separated. Depth 10 is retained because the selection rule, fixed before tuning began, was to take the configuration with the highest mean CV F1 as stated in Section 2.3; under a one-standard-error rule the simpler depth 4 would instead have been selected, and this is noted as a limitation in Section 5. Second, the decision tree shows mild overfitting, with training F1 of 0.7188 against test F1 of 0.6319 (a gap of 0.087), whereas k-NN has a smaller gap, 0.6023 against 0.5773, because k=101 applies strong smoothing.
+\textit{Model behaviour and limits.} Two further points qualify the results. First, depth 10 gives a CV F1 of 0.5745 ± 0.0130 and depth 4 gives 0.5712 ± 0.0177, a difference of only 0.0033 that is smaller than the standard deviation, so the two depths cannot be reliably separated. Depth 10 is retained because the selection rule, fixed before tuning began, was to take the configuration with the highest mean CV F1 as stated in Section 2.3; under a one-standard-error rule the simpler depth 4 would instead have been selected. Second, the decision tree shows mild overfitting, with training F1 of 0.7188 against test F1 of 0.6319 (a gap of 0.087), whereas k-NN has a smaller gap, 0.6023 against 0.5773, because k=101 applies strong smoothing.
 
 \textit{Subset experiments and the RQ.} The subset experiments answer the research question most directly. On cross-validation, fundamentals reach 0.166 F1 and operational features 0.548; on the test set the corresponding values are 0.1955 and 0.6389, and the 95\% interval for the test-set difference of 0.4434 is [0.3813, 0.5046], which does not include zero.
 
 \subsection{Feature Selection}
 
-\textit{Agreements and divergence.} Both put days\_since\_last\_review first and host\_listings\_count second, but they swap the next two features: availability\_365 ranks third by mutual information (0.0759) but fourth by impurity (0.0356), while amenity\_count ranks fourth by mutual information (0.0749) but third by impurity (0.1023). Mutual information scores each feature against the target on its own, so the redundancy between availability\_365 and days\_since\_last\_review is not penalised. Feature importance works differently: it credits a feature only for the tree impurity it removes once the earlier splits are already in place. availability\_365 carries much the same information as days\_since\_last\_review, so once the tree has split on recency there is little left for it to explain, and it drops to 0.0356. amenity\_count overlaps with recency far less, so it keeps 0.1023. Experiment E supports this reading: removing availability\_365 leaves CV F1 slightly higher (0.5846 vs 0.5745) and test F1 essentially unchanged (0.6303 vs 0.6319).
+\textit{Agreements and divergence.} Both put days\_since\_last\_review first and host\_listings\_count second, but they swap the next two features: availability\_365 ranks third by mutual information (0.1095) but fourth by impurity (0.0356), while amenity\_count ranks fourth by mutual information (0.1080) but third by impurity (0.1023). Mutual information scores each feature against the target on its own, so the redundancy between availability\_365 and days\_since\_last\_review is not penalised. Feature importance works differently: it credits a feature only for the tree impurity it removes once the earlier splits are already in place. availability\_365 carries much the same information as days\_since\_last\_review, so once the tree has split on recency there is little left for it to explain, and it drops to 0.0356. amenity\_count overlaps with recency far less, so it keeps 0.1023. Experiment E supports this reading: removing availability\_365 leaves CV F1 slightly higher (0.5846 vs 0.5745) and test F1 essentially unchanged (0.6303 vs 0.6319).
 
 \textit{The hard case.} Listing 6812677 is a superhost listing that the tree classed as a non-superhost with a predicted probability of 0.000. On the features the model can see it looks less active: 18 amenities against medians of 45 for superhosts and 32 for non-superhosts, availability of 116 which is below even the non-superhost median of 124, a host with a single listing, and 156 days since the last review against a superhost median of 37. The tree path explains the result: the root split is days\_since\_last\_review ≤ 147.5, and its value of 156 falls only 8.5 days onto the inactive side; it then meets host\_listings\_count ≤ 1.5 and amenity\_count ≤ 24.5 (it has 18), ending in a leaf of 86 training listings that are all non-superhosts, hence the probability of 0.000. k-NN also classifies it incorrectly, with a probability of 0.267. On the two official criteria observable in the data, it meets both: 24 reviews in the last twelve months (at least 10 required) and a rating of 4.8 (at least 4.8 required), but these two features are excluded from the models. Its days\_since\_last\_review sits at the 54.6th percentile among all listings yet the 90.8th percentile among reviewed superhosts, so it is ordinary overall but extreme within its own class.
 
-\textit{Filter-high, embedded-low.} Two features show why a high filter ranking can coincide with a low embedded ranking. has\_review has MI of 0.0344 (rank 7) but impurity of 0.0000 (rank 11), because has\_review = 0 is exactly equivalent to days\_since\_last\_review = 4,594, and once the tree splits on recency it has captured all of that information. price\_missing ranks sixth by MI but ninth by impurity, since 93.35\% of listings with a missing price also have availability\_365 = 0, so the two features largely overlap.
+\textit{Filter-high, embedded-low.} Two features show why a high filter ranking can coincide with a low embedded ranking. has\_review has MI of 0.0496 (rank 7) but impurity of 0.0000 (rank 11), because has\_review = 0 is exactly equivalent to days\_since\_last\_review = 4,594, and once the tree splits on recency it has captured all of that information. price\_missing ranks sixth by MI but ninth by impurity, since 93.35\% of listings with a missing price also have availability\_365 = 0, so the two features largely overlap.
 
 \subsection{Dimensionality Reduction \& Clustering}
 
@@ -427,9 +427,9 @@ Availability interpretation. An availability\_365 of 0 is treated as an unavaila
 
 \textit{The two feature groups are different sizes.} Operational features number eight against three fundamentals, so part of the gap between them may reflect the larger set holding more information rather than that family being more informative. Two further alternatives were not implemented: modelling at the host level, with one row for each of the 14,113 hosts, would remove within-host dependence, and adding the official criteria back in as an upper-bound reference was also left undone.
 
-\textit{Feature Selection —} Continuous features are favoured. A continuous feature offers more possible split points, so it has more chances to reduce impurity. For instance, dist\_cbd ranks 5th by embedded importance at 0.0278 while the filter places it 8th at MI 0.0340.
+\textit{Feature Selection —} Continuous features are favoured. A continuous feature offers more possible split points, so it has more chances to reduce impurity. For instance, dist\_cbd ranks 5th by embedded importance at 0.0278 while the filter places it 8th at MI 0.0490.
 
-\textit{Third place is very close.} availability\_365 and amenity\_count differ by only 0.0010 on mutual information (0.0759 versus 0.0749); MI is produced by a nearest-neighbour estimator rather than by folds, so changing the random seed could reverse this order.
+\textit{Third place is very close.} availability\_365 and amenity\_count differ by only 0.0015 on mutual information (0.1095 versus 0.1080); MI is produced by a nearest-neighbour estimator rather than by folds, so changing the random seed could reverse this order.
 
 \textit{PCA \& Clustering —} Much of the variance is unexplained. The first three components carry 69.4\%, leaving 30.6\% that none of the interpretations above covers, and PC1 alone accounts for 32.1\%.
 

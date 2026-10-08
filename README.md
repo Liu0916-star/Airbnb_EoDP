@@ -71,7 +71,7 @@ Imports, paths, the global seed, a rounding helper.
 - Test-set evaluation (per-class precision/recall/F1, macro-F1, training F1, confusion matrices, absolute gain over the baseline) and a paired host-level bootstrap (1,000 resamples) for 95% intervals.
 - Six feature-set experiments (fundamentals vs operational, with ablations), plus four more: without `amenity_count`, without price, and price moved between the two families.
 - Feature influence: tree impurity importance; permutation importance for both models.
-- Feature selection: filter = `mutual_info_classif`, embedded = tree importance; top 3 of each, re-validated by retraining.
+- Feature selection: filter = `mutual_info_classif` (divided by ln 2 so the score is in bits), embedded = tree importance; top 3 of each, compared and explained.
 - Hard case: the tree's most confident false negative, against class medians, with its path through the tree and its percentile on the top-ranked feature.
 
 ### Part 4: PCA and clustering (n=21,251)
@@ -102,17 +102,17 @@ All files are written to `outputs/`. Every number quoted in the report is stored
 | 3.3 / Tables 5-6 CV score per hyperparameter | `cv_results.csv` | 3.3 |
 | 3.3 / Table 7 Test precision/recall/F1 | `evidence_model.json` (test, test_extra) | 3.4-3.4b |
 | 3.3 / Table 8 Bootstrap 95% intervals | `evidence_model.json` (boot_*) | 3.4-3.5 |
-| 3.4 / Table 9 Feature ranking: MI, impurity, permutation | `feature_ranking.csv`, `evidence_model.json` (permutation_importance) | 3.6-3.7 |
+| 3.4 / Table 9 Feature ranking: MI (bits), impurity, permutation | `feature_ranking.csv`, `evidence_model.json` (permutation_importance) | 3.6-3.7 |
 | 3.4 Hard case 6812677 | `evidence_model.json` (hard_case, false_negative_context) | 3.8-3.8b |
 | 3.5 / Table 10 PCA variance and loadings | `pca_table.csv` | 4.4 |
 | 3.5 / Figure 2 PCA scatter, K-Means centroids | `fig_pca_clusters.png` | 4.9 |
 | 3.5 / Table 11 K-Means and Ward profiles | `cluster_profiles.csv` | 4.8 |
 | 4.1 Ablations G, H | `rq_experiments_extra.csv` | 3.5b |
-| 4.2 dsl ~ dist_cbd sign flip | `fig_dsl_vs_dist.png` (dist_band_trend) | 2.5 |
+| 4.2 dsl ~ dist_cbd sign flip | `evidence_correlation.json` (sign_flip_pairs, dist_band_trend), `fig_dsl_vs_dist.png` | 2.3, 2.5 |
 | 4.3 Feature-set experiments A-F, TP/FP | `rq_experiments.csv`, `evidence_model.json` (test_extra) | 3.4, 3.5 |
 | 4.5 Components vs superhost status | `evidence_cluster.json` (pc_vs_superhost) | 4.4b |
 | 4.5 K-Means vs Ward comparison | `evidence_cluster.json` (crosstab, kmeans_vs_hierarchical_ari) | 4.7 |
 
-Produced by the notebook but not shown in the report (kept as supporting evidence): `fig_elbow.png` (elbow curve), `fig_confusion.png` (confusion matrices), `fig_importance.png` (permutation importance chart), `fs_validation.csv` (top-3 retraining), `fig_dendrogram.png` (Ward dendrogram, 2,000-row sample).
+Produced by the notebook but not shown in the report (kept as supporting evidence): `fig_elbow.png` (elbow curve), `fig_confusion.png` (confusion matrices), `fig_importance.png` (permutation importance chart), `fig_dendrogram.png` (Ward dendrogram, 2,000-row sample).
 
 Note: cluster labels are 0-based in the notebook; the report numbers them 1-5.
