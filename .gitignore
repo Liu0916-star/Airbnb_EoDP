@@ -3,3 +3,4 @@ notes
 __pycache__/
 .ipynb_checkpoints/
 data/clean.parquet
+outputs
