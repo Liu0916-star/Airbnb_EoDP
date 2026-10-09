@@ -79,7 +79,7 @@ Imports, paths, the global seed, a rounding helper.
 - Three candidate feature sets compared; the 6-feature mixed set is used.
 - `log1p` on 3 skewed features, then `StandardScaler`.
 - PCA: explained variance and top-3 loadings of PC1-PC3; association of each component with superhost status.
-- K-Means elbow (SSE) and silhouette over k = 2..8 (k = 5); Ward hierarchical with the same k, compared with the single/complete/average linkages from the lectures; crosstab and ARI between the two, cluster profiles (medians, superhost rate).
+- K-Means elbow (SSE) over k = 2..8 (k = 5); Ward hierarchical with the same k, compared with the single/complete/average linkages from the lectures; crosstab between the two, cluster profiles (medians, superhost rate).
 
 ## 4. Outputs and where they appear in the report
 
@@ -93,26 +93,27 @@ All files are written to `outputs/`. Every number quoted in the report is stored
 | 2.2 Binning choice, MI bin sensitivity | `evidence_correlation.json` (mi_bin_sensitivity, in nats; the report quotes bits = nats / ln 2) | 2.1 |
 | 2.3 Split sizes and class balance | `evidence_model.json` (split, split_details) | 3.1-3.1b |
 | 2.3 Price ~ accommodates Spearman 0.682 | `evidence_preprocess.json` (price_accommodates_spearman) | 1.6b |
+| 2.4 / Figure 1 K-Means elbow curve | `fig_elbow.png` (kmeans_sweep) | 4.5 |
 | 2.5 / Table 2 Candidate clustering sets | `evidence_cluster.json` (candidate_set_comparison) | 4.5b |
-| 2.5 k = 5: SSE drops and silhouette | `evidence_cluster.json` (kmeans_sweep) | 4.5 |
+| 2.5 k = 5: SSE drops | `evidence_cluster.json` (kmeans_sweep) | 4.5 |
 | 2.5 Why Ward linkage | `evidence_cluster.json` (linkage_comparison_sizes) | 4.6b |
 | 3.1 / Table 3 Before/after of the 3 steps | `evidence_preprocess.json` | 1.2-1.4 |
 | 3.2 / Table 4 Correlation table (40 values) | `correlation_matrix.csv` (mi = nats, mi_bits = bits) | 2.2 |
-| 3.2 / Figure 1 Superhost rate by host size | `fig_hlc_vs_y.png` (hlc_band) | 2.4 |
+| 3.2 / Figure 2 Superhost rate by host size | `fig_hlc_vs_y.png` (hlc_band) | 2.4 |
 | 3.3 / Tables 5-6 CV score per hyperparameter | `cv_results.csv` | 3.3 |
 | 3.3 / Table 7 Test precision/recall/F1 | `evidence_model.json` (test, test_extra) | 3.4-3.4b |
 | 3.3 / Table 8 Bootstrap 95% intervals | `evidence_model.json` (boot_*) | 3.4-3.5 |
 | 3.4 / Table 9 Feature ranking: MI (bits), impurity, permutation | `feature_ranking.csv`, `evidence_model.json` (permutation_importance) | 3.6-3.7 |
 | 3.4 Hard case 6812677 | `evidence_model.json` (hard_case, false_negative_context) | 3.8-3.8b |
 | 3.5 / Table 10 PCA variance and loadings | `pca_table.csv` | 4.4 |
-| 3.5 / Figure 2 PCA scatter, K-Means centroids | `fig_pca_clusters.png` | 4.9 |
+| 3.5 / Figure 3 PCA scatter, K-Means centroids | `fig_pca_clusters.png` | 4.9 |
 | 3.5 / Table 11 K-Means and Ward profiles | `cluster_profiles.csv` | 4.8 |
 | 4.1 Ablations G, H | `rq_experiments_extra.csv` | 3.5b |
 | 4.2 dsl ~ dist_cbd sign flip | `evidence_correlation.json` (sign_flip_pairs, dist_band_trend), `fig_dsl_vs_dist.png` | 2.3, 2.5 |
 | 4.3 Feature-set experiments A-F, TP/FP | `rq_experiments.csv`, `evidence_model.json` (test_extra) | 3.4, 3.5 |
 | 4.5 Components vs superhost status | `evidence_cluster.json` (pc_vs_superhost) | 4.4b |
-| 4.5 K-Means vs Ward comparison | `evidence_cluster.json` (crosstab, kmeans_vs_hierarchical_ari) | 4.7 |
+| 4.5 K-Means vs Ward comparison | `evidence_cluster.json` (crosstab, kmeans_vs_hierarchical_majority_overlap) | 4.7 |
 
-Produced by the notebook but not shown in the report (kept as supporting evidence): `fig_elbow.png` (elbow curve), `fig_confusion.png` (confusion matrices), `fig_importance.png` (permutation importance chart), `fig_dendrogram.png` (Ward dendrogram, 2,000-row sample).
+Produced by the notebook but not shown in the report (kept as supporting evidence): `fig_confusion.png` (confusion matrices), `fig_importance.png` (permutation importance chart), `fig_dendrogram.png` (Ward dendrogram, 2,000-row sample).
 
 Note: cluster labels are 0-based in the notebook; the report numbers them 1-5.
